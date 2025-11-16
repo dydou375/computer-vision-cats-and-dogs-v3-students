@@ -107,71 +107,130 @@ jobs:
           REPO_NAME: ${{ github.repository }}  # Format: owner/repo
         
         run: |
-          ssh $VPS_USER@$VPS_HOST bash << 'ENDSSH'
-            set -e  # Arrêter en cas d'erreur
-            
+          ssh $VPS_USER@$VPS_HOST << 'ENDSSH'
+          # 📡 CONNEXION SSH avec heredoc (commandes multi-lignes)
+          # 'ENDSSH' avec quotes → pas d'expansion de variables locales
+          # Variables GitHub accessibles via interpolation avant SSH
+
             # Variables
             STUDENT_ID="${{ secrets.STUDENT_ID }}"
-            PROJECT_DIR="$HOME/apps/computer-vision-cats-and-dogs-v3-${STUDENT_ID}"
-            
-            echo "📁 Dossier de déploiement: $PROJECT_DIR"
-            
-            # Créer/Mettre à jour le projet
+            PROJECT_DIR="~/apps/computer-vision-cats-and-dogs-v3-${STUDENT_ID}"
+
+            # ═══════════════════════════════════════════════════════════════
+            # 📂 NAVIGATION ET GESTION DU REPOSITORY
+            # ═══════════════════════════════════════════════════════════════           
             if [ -d "$PROJECT_DIR" ]; then
-              echo "🔄 Mise à jour du repository..."
-              cd "$PROJECT_DIR"
+              # ♻️ MISE À JOUR : repo existe déjà
+              cd $PROJECT_DIR
               git pull
+              # 💡 Rapide : télécharge uniquement les nouveaux commits
+              # Présuppose : branche main trackée, pas de conflits locaux
             else
-              echo "📥 Clonage du repository..."
-              cd $HOME/apps
+              # 🆕 PREMIÈRE INSTALLATION : clone complet
+              cd ~/apps
+              # 📁 Répertoire de déploiement (à créer manuellement au setup VPS)
               git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git computer-vision-cats-and-dogs-v3-${STUDENT_ID}
+              # 🔐 Clone avec token (requis si repo privé)
+              # Token scope nécessaire : repo (full control)
               cd computer-vision-cats-and-dogs-v3-${STUDENT_ID}
             fi
             
-            # Copier le .env
-            echo "📄 Copie du fichier .env..."
-            cp $HOME/apps/.env.${STUDENT_ID} .env
-            cp $HOME/apps/.env.${STUDENT_ID} docker/.env
+            # ═══════════════════════════════════════════════════════════════
+            # 🔐 GESTION DU FICHIER .env (SECRETS DE PRODUCTION)
+            # ═══════════════════════════════════════════════════════════════
+            # Copier le .env spécifique à l'étudiant
+            cp ~/apps/.env.${STUDENT_ID} .env
+            cp ~/apps/.env.${STUDENT_ID} docker/.env
+            # 📋 Copie .env depuis emplacement sécurisé (hors repo Git)
+            # ~/apps/.env créé manuellement au setup VPS avec :
+            #   DB_PWD=...
+            #   API_TOKEN=...
+            #   GRAFANA_ADMIN_PASSWORD=...
+            #   DISCORD_WEBHOOK_URL=...
+            #
+            # 💡 POURQUOI 2 COPIES ?
+            # - .env : racine (pour scripts Python locaux si besoin)
+            # - docker/.env : lu par docker-compose.yml (env_file: ../.env)
+            #
+            # ⚠️ ALTERNATIVE (non recommandée en prod) :
+            # Passer secrets via GitHub Secrets + substitution dans docker-compose
+            # → Risque : secrets visibles dans docker inspect
             
-            # Déployer
-            echo "🐳 Déploiement Docker..."
+            # ═══════════════════════════════════════════════════════════════
+            # 🐳 DÉPLOIEMENT DOCKER
+            # ═══════════════════════════════════════════════════════════════
             cd docker
+            # 📂 Sous-répertoire contenant docker-compose.yml et Dockerfile.app
             
-            # Arrêter les containers existants
-            docker compose -p cv-${STUDENT_ID} down 2>/dev/null || true
+            docker compose -p computer-vision-cats-and-dogs-v3-${STUDENT_ID} down 2>/dev/null || true
+            # 🛑 ARRÊT GRACIEUX des containers existants
+            # 2>/dev/null : supprime erreurs si pas de containers (première install)
+            # || true : ne fait pas échouer le script si erreur (idempotence)
+            #
+            # 💡 down vs stop :
+            # - stop : arrête containers (gardés pour restart rapide)
+            # - down : arrête + supprime containers + réseau (clean slate)
             
-            # Build
-            echo "🔨 Build des images..."
-            docker compose -p cv-${STUDENT_ID} build --no-cache
+            docker compose -p computer-vision-cats-and-dogs-v3-${STUDENT_ID} build --no-cache
+            # 🔨 REBUILD des images Docker
+            # --no-cache : force rebuild complet (ignore layers en cache)
+            # 
+            # ⚠️ COMPROMIS PERFORMANCE vs FRAÎCHEUR
+            # --no-cache :
+            #   ✅ Garantit dernières dépendances (pip, apt)
+            #   ❌ Lent (~5 min avec TensorFlow)
+            # Sans --no-cache :
+            #   ✅ Rapide (réutilise layers)
+            #   ❌ Peut manquer updates critiques (ex: security patch)
+            #
+            # Alternative optimisée : build seulement si Dockerfile/requirements changés
             
-            # Up
-            echo "🚀 Démarrage des containers..."
-            docker compose -p cv-${STUDENT_ID} up -d
+            docker compose -p computer-vision-cats-and-dogs-v3-${STUDENT_ID}
+            # 🚀 DÉMARRAGE des containers en mode détaché
+            # -d : background (daemon mode)
+            # Ordre de démarrage : cf. depends_on dans docker-compose.yml
+            #   1. postgres (healthcheck)
+            #   2. cv_app (attend postgres healthy)
+            #   3. prometheus
+            #   4. grafana
             
-            # Attendre que les services démarrent
-            echo "⏳ Attente du démarrage..."
-            sleep 10
-            
-            # Vérifier l'état
-            echo "✅ État des containers:"
-            docker compose -p cv-${STUDENT_ID} ps
-            
-            # Cleanup
-            echo "🧹 Nettoyage..."
+            # ═══════════════════════════════════════════════════════════════
+            # 🧹 NETTOYAGE (éviter saturation disque)
+            # ═══════════════════════════════════════════════════════════════
             docker image prune -af --filter "until=24h"
+            # 🗑️ SUPPRESSION des images non utilisées (dangling)
+            # -a : toutes images inutilisées (pas que dangling)
+            # -f : force (pas de confirmation)
+            # --filter "until=24h" : garde images récentes (rollback rapide)
+            #
+            # 💾 GAIN D'ESPACE TYPIQUE
+            # Après quelques déploiements : ~2-5 GB récupérés
+            # Image cv_app : ~800MB (Python + TensorFlow)
             
-            echo "✅ Déploiement terminé pour ${STUDENT_ID}"
+            # ═══════════════════════════════════════════════════════════════
+            # 📊 VÉRIFICATION DU DÉPLOIEMENT
+            # ═══════════════════════════════════════════════════════════════
+            echo "✅ Containers pour ${STUDENT_ID} :"
+            docker compose -p computer-vision-cats-and-dogs-v3-${STUDENT_ID} ps
+            # 📋 Affiche statut de chaque service
+            # Colonnes : NAME | STATUS | PORTS | HEALTH
+            # ⚠️ Vérifier :
+            # - STATUS = Up (pas Restarting ou Exited)
+            # - HEALTH = healthy (si healthcheck configuré)
           ENDSSH
+          # 🏁 FIN du bloc SSH
 
+      # ───────────────────────────────────────────────────────────────────────
+      # ÉTAPE 4 : Confirmation du déploiement
+      # ───────────────────────────────────────────────────────────────────────
       - name: ✅ Deployment Success
         run: |
           echo "🎉 Déploiement réussi pour ${{ secrets.STUDENT_ID }}"
           echo "📊 Grafana: http://${{ secrets.VPS_HOST }}:${{ secrets.STUDENT_PORT_GRAFANA }}"
           echo "🔧 API: http://${{ secrets.VPS_HOST }}:${{ secrets.STUDENT_PORT_API }}"
           echo "📈 Prometheus: http://${{ secrets.VPS_HOST }}:${{ secrets.STUDENT_PORT_PROMETHEUS }}"
-          echo ""
-          echo "🧪 Test de santé:"
-          curl -f http://${{ secrets.VPS_HOST }}:${{ secrets.STUDENT_PORT_API }}/health || echo "⚠️  API pas encore prête"
+        # 📝 Affiche dans les logs GitHub Actions (onglet Summary)
+        # Utile pour : accès rapide aux services, debugging URLs
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 🎓 AMÉLIORATIONS POSSIBLES (pour aller plus loin)
