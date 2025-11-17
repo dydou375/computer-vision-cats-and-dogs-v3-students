@@ -118,6 +118,8 @@ Choisir **2 métriques** parmi :
 
 ## 🏆 Bonus (Jour 4)
 
+### Voir exemples dans le brief projet Simplonline
+
 ### Tests Automatisés dans CI/CD
 
 Ajouter dans `.github/workflows/deploy.yml` **AVANT** le déploiement :
