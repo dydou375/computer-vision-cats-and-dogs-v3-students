@@ -83,7 +83,8 @@
           "refId": "A"
         }
       ],
-      "title": "New panel",
+      "title": "Feedback_users",
+      "transparent": true,
       "type": "piechart"
     },
     {
