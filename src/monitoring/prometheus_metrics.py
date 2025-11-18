@@ -35,6 +35,11 @@ database_status = Gauge(
     'cv_database_connected',
     'Database connection status (1=connected, 0=disconnected)'
 )
+
+inference_time_histogram = Histogram(
+    'cv_inference_time_seconds',
+    'Temps d\'inférence en secondes'
+)
 # 💡 USAGE
 # - .set(1) : marque comme connecté
 # - .set(0) : marque comme déconnecté
@@ -106,6 +111,12 @@ def update_db_status(is_connected: bool):
         # Alerte Grafana se déclenche automatiquement
     """
     database_status.set(1 if is_connected else 0)
+    
+
+def track_inference_time(inference_time_ms: float):
+    """Enregistre le temps d'inférence"""
+    inference_time_histogram.observe(inference_time_ms / 1000)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎓 CONCEPTS AVANCÉS (pour aller plus loin)

@@ -165,6 +165,72 @@ groups:
         # ▶️ État actif (false = alertes envoyées)
         # true = temporairement désactivé (maintenance)
 
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🟠 ALERTE 2 : Latence d'inférence élevée (WARNING)
+      # ═══════════════════════════════════════════════════════════════════════
+      - uid: cv-high-latency
+        # 🆔 Identifiant unique pour l'alerte de latence
+
+        title: High Inference Latency
+        # 📌 Titre affiché dans Grafana et les notifications
+
+        condition: C
+        # 🎯 Condition basée sur la query "C" (threshold sur la latence moyenne)
+
+        data:
+          # ─────────────────────────────────────────────────────────────────
+          # 📊 QUERY A : Calcul latence moyenne sur 5 minutes
+          # ─────────────────────────────────────────────────────────────────
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300   # -5 minutes
+              to: 0       # maintenant
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: rate(cv_inference_time_seconds_sum[5m]) / rate(cv_inference_time_seconds_count[5m])
+              # Latence moyenne (en secondes) sur les 5 dernières minutes
+              instant: true
+              range: false
+              refId: A
+
+          # ─────────────────────────────────────────────────────────────────
+          # 🧮 QUERY C : Threshold (latence > 2 secondes)
+          # ─────────────────────────────────────────────────────────────────
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 2
+                    type: gt
+                  # Condition : latence moyenne > 2s
+                  reducer:
+                    type: last
+                  type: query
+              expression: A
+              type: threshold
+
+        noDataState: NoData
+        # Si pas de données (pas de prédictions récentes) → pas d'alerte
+
+        execErrState: Alerting
+        # Si erreur d'exécution de la règle → on préfère alerter
+
+        for: 2m
+        # La condition doit rester vraie pendant 2 minutes avant déclenchement
+
+        annotations:
+          description: "Latence moyenne des prédictions > 2 secondes sur les 5 dernières minutes."
+          summary: "Latence d'inférence élevée (WARNING)"
+
+        labels:
+          severity: warning
+
+        isPaused: false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎓 STRUCTURE ALERT RULE GRAFANA
 # ═══════════════════════════════════════════════════════════════════════════

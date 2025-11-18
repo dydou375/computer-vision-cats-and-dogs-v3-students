@@ -90,6 +90,7 @@ notifier = None
 track_prediction = None
 track_feedback = None
 update_db_status = None
+track_inference_time = None
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 📊 IMPORT PROMETHEUS (si activé)
@@ -97,10 +98,12 @@ update_db_status = None
 if ENABLE_PROMETHEUS:
     try:
         from src.monitoring.prometheus_metrics import (
-            update_db_status as _update_db_status   # Gauge database_status
+            update_db_status as _update_db_status,   # Gauge database_status
+            track_inference_time as _track_inference_time,  # Histogram latence
         )
         # 🔄 Renommage avec underscore pour éviter shadowing (bonne pratique)
         update_db_status = _update_db_status
+        track_inference_time = _track_inference_time
         print("✅ Prometheus tracking functions loaded")
     except ImportError as e:
         ENABLE_PROMETHEUS = False  # Désactivation silencieuse
@@ -294,6 +297,20 @@ async def predict_api(
         proba_cat = result['probabilities']['cat'] * 100  # 0.95 → 95.0
         proba_dog = result['probabilities']['dog'] * 100
         # Stockage en pourcentage (plus intuitif en base)
+
+        # ─────────────────────────────────────────────────────────────────────
+        # 📊 TRACKING PROMETHEUS DU TEMPS D'INFÉRENCE (V3)
+        # ─────────────────────────────────────────────────────────────────────
+        # Équivaut à l'exercice :
+        # start_time = time.time()
+        # ... prédiction ...
+        # inference_time_ms = (time.time() - start_time) * 1000
+        # track_inference_time(inference_time_ms)
+        if ENABLE_PROMETHEUS and track_inference_time:
+            try:
+                track_inference_time(inference_time_ms)
+            except Exception as e:
+                print(f"⚠️  Prometheus inference time tracking failed: {e}")
         
         # ─────────────────────────────────────────────────────────────────────
         # 💾 SAUVEGARDE EN BASE DE DONNÉES (V2 - inchangé)
