@@ -46,16 +46,6 @@ database_status = Gauge(
 # 📈 QUERY PROMQL POUR ALERTE
 # - cv_database_connected == 0 : déclenche alerte Discord
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ⏱️ HISTOGRAM : Distribution des temps d'inférence
-# ─────────────────────────────────────────────────────────────────────────────
-# 💡 UNITÉ : secondes (convention Prometheus)
-# On observe des valeurs en millisecondes côté API, converties ici en secondes.
-inference_time_histogram = Histogram(
-    'cv_inference_time_seconds',
-    "Temps d'inférence en secondes"
-)
-
 # ═══════════════════════════════════════════════════════════════════════════
 # 🔧 SETUP - Configuration de l'instrumentation Prometheus
 # ═══════════════════════════════════════════════════════════════════════════
@@ -116,20 +106,6 @@ def update_db_status(is_connected: bool):
         # Alerte Grafana se déclenche automatiquement
     """
     database_status.set(1 if is_connected else 0)
-
-
-def track_inference_time(inference_time_ms: float):
-    """
-    Enregistre le temps d'inférence dans un histogramme Prometheus.
-
-    Args:
-        inference_time_ms: Temps d'inférence en millisecondes.
-
-    💡 CONVENTION
-    Prometheus recommande les secondes comme unité standard
-    → conversion ms → s pour la métrique `cv_inference_time_seconds`.
-    """
-    inference_time_histogram.observe(inference_time_ms / 1000)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎓 CONCEPTS AVANCÉS (pour aller plus loin)

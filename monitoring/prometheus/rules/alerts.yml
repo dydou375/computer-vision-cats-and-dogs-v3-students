@@ -81,30 +81,6 @@ groups:
           #   4. Check disk space: df -h
           # runbook_url: "https://wiki/runbooks/postgres-down"
 
-      # ═══════════════════════════════════════════════════════════════════════
-      # ⚠️ ALERTE LATENCE : Temps d'inférence moyen trop élevé
-      # ═══════════════════════════════════════════════════════════════════════
-      - alert: alert_high_latency
-        expr: rate(cv_inference_time_seconds_sum[5m]) / rate(cv_inference_time_seconds_count[5m]) > 2
-        # 💡 EXPLICATION
-        # - cv_inference_time_seconds_sum : somme des latences (histogram)
-        # - cv_inference_time_seconds_count : nombre de requêtes
-        # - rate(...[5m]) : vitesse de variation (sur 5 minutes)
-        # → ratio = latence moyenne sur 5 minutes (en secondes)
-        # Seuil : > 2 secondes de latence moyenne sur les  5 dernières minutes
-
-        for: 2m
-        # ⏰ La condition doit être vraie pendant 2 minutes consécutives
-        # avant de déclencher l'alerte (réduction des faux positifs)
-
-        labels:
-          severity: warning
-          # 🟠 WARNING : latence dégradée mais service encore disponible
-
-        annotations:
-          summary: "Latence élevée détectée"
-          description: "Latence moyenne > 2s pendant 2 minutes"
-
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎓 CONCEPTS AVANCÉS (non implémentés, pour aller plus loin)
 # ═══════════════════════════════════════════════════════════════════════════
