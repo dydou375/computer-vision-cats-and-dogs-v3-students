@@ -103,6 +103,26 @@ groups:
           summary: "Latence élevée détectée"
           description: "Latence moyenne > 2s pendant 2 minutes"
 
+      # ═══════════════════════════════════════════════════════════════════════
+      # ⚠️ ALERTE FEEDBACK : Trop de retours négatifs
+      # ═══════════════════════════════════════════════════════════════════════
+      - alert: alert_high_negative_feedback
+        expr: |
+          rate(cv_user_feedback_total{feedback_type="negative"}[10m])
+          /
+          rate(cv_user_feedback_total[10m]) > 0.5
+        # 💡 Calcul du ratio de feedbacks négatifs sur les 10 dernières minutes.
+
+        for: 10m
+        # On attend 10 minutes complètes avant de déclencher l'alerte.
+
+        labels:
+          severity: warning
+
+        annotations:
+          summary: "Taux de feedbacks négatifs > 50%"
+          description: "Plus de la moitié des feedbacks des 10 dernières minutes sont négatifs."
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎓 CONCEPTS AVANCÉS (non implémentés, pour aller plus loin)
 # ═══════════════════════════════════════════════════════════════════════════

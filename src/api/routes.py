@@ -100,10 +100,12 @@ if ENABLE_PROMETHEUS:
         from src.monitoring.prometheus_metrics import (
             update_db_status as _update_db_status,   # Gauge database_status
             track_inference_time as _track_inference_time,  # Histogram latence
+            track_feedback as _track_feedback,
         )
         # 🔄 Renommage avec underscore pour éviter shadowing (bonne pratique)
         update_db_status = _update_db_status
         track_inference_time = _track_inference_time
+        track_feedback = _track_feedback
         print("✅ Prometheus tracking functions loaded")
     except ImportError as e:
         ENABLE_PROMETHEUS = False  # Désactivation silencieuse
@@ -441,6 +443,8 @@ async def update_feedback(
         # ─────────────────────────────────────────────────────────────────────
         # ✏️ MISE À JOUR DES CHAMPS
         # ─────────────────────────────────────────────────────────────────────
+        prometheus_feedback_label = None
+
         if user_feedback is not None:
             if user_feedback not in [0, 1]:
                 raise HTTPException(
@@ -448,12 +452,23 @@ async def update_feedback(
                     detail="user_feedback doit être 0 ou 1"
                 )
             record.user_feedback = user_feedback
+            prometheus_feedback_label = "positive" if user_feedback == 1 else "negative"
         
         if user_comment:
             record.user_comment = user_comment
         
         # 💾 Commit en base
         db.commit()
+
+        if (
+            prometheus_feedback_label
+            and ENABLE_PROMETHEUS
+            and track_feedback
+        ):
+            try:
+                track_feedback(prometheus_feedback_label)
+            except Exception as e:
+                print(f"⚠️  Prometheus feedback tracking failed: {e}")
         
     except HTTPException:
         raise  # Propage les HTTPException définies ci-dessus

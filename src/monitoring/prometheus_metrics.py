@@ -40,6 +40,12 @@ inference_time_histogram = Histogram(
     'cv_inference_time_seconds',
     'Temps d\'inférence en secondes'
 )
+
+feedback_counter = Counter(
+    'cv_user_feedback_total',
+    'Nombre de feedbacks utilisateurs',
+    ['feedback_type']  # 'positive' ou 'negative'
+)
 # 💡 USAGE
 # - .set(1) : marque comme connecté
 # - .set(0) : marque comme déconnecté
@@ -116,6 +122,16 @@ def update_db_status(is_connected: bool):
 def track_inference_time(inference_time_ms: float):
     """Enregistre le temps d'inférence"""
     inference_time_histogram.observe(inference_time_ms / 1000)
+
+
+def track_feedback(feedback_type: str):
+    """
+    Incrémente le compteur de feedbacks utilisateurs.
+
+    Args:
+        feedback_type: 'positive' ou 'negative'
+    """
+    feedback_counter.labels(feedback_type=feedback_type).inc()
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -231,6 +231,56 @@ groups:
 
         isPaused: false
 
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🟠 ALERTE 3 : Feedback négatif majoritaire (WARNING)
+      # ═══════════════════════════════════════════════════════════════════════
+      - uid: cv-high-negative-feedback
+        title: High Negative Feedback Ratio
+        condition: C
+
+        data:
+          # Query A : ratio feedbacks négatifs / total
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 600   # 10 minutes
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: rate(cv_user_feedback_total{feedback_type="negative"}[10m]) / rate(cv_user_feedback_total[10m])
+              instant: true
+              range: false
+              refId: A
+
+          # Query C : seuil > 0.5
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.5
+                    type: gt
+                  reducer:
+                    type: last
+                  type: query
+              expression: A
+              type: threshold
+
+        noDataState: NoData
+        execErrState: Alerting
+        for: 10m
+
+        annotations:
+          description: "Plus de 50% des feedbacks des 10 dernières minutes sont négatifs."
+          summary: "Taux de feedbacks négatifs trop élevé"
+
+        labels:
+          severity: warning
+
+        isPaused: false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎓 STRUCTURE ALERT RULE GRAFANA
 # ═══════════════════════════════════════════════════════════════════════════
