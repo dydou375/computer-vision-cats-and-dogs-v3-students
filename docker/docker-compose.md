@@ -56,7 +56,7 @@ services:
     # Alpine = distribution Linux ultra-légère (~5MB vs ~100MB pour Debian)
     # Idéal pour conteneurs (démarrage rapide, moins de surface d'attaque)
     
-    container_name: cv_postgres_${STUDENT_ID:-student04}
+    container_name: cv_postgres_${STUDENT_ID:-student01}
     # 💡 Nom fixe du conteneur (facilite les logs et le debugging)
     # Sans cela, Docker génère un nom aléatoire (ex: cv_v3_postgres_1)
     
@@ -77,7 +77,7 @@ services:
       # Syntaxe : ${VARIABLE:-valeur_par_defaut}
       # Ordre de priorité : 1) .env, 2) valeur par défaut, 3) variable système
       
-      POSTGRES_DB: ${DB_NAME:-cats_dogs_db}_${STUDENT_ID:-student04}
+      POSTGRES_DB: ${DB_NAME:-cats_dogs_db}_${STUDENT_ID:-student01}
       # 💡 Nom de la base créée automatiquement au premier démarrage
       # Défaut : cats_dogs_db (si DB_NAME absent du .env)
       
@@ -167,7 +167,7 @@ services:
       # 📄 Chemin relatif au contexte (..) du Dockerfile à utiliser
       # Séparation propre : configs Docker dans docker/, code dans src/
     
-    container_name: cv_cats_dogs_app_${STUDENT_ID:-student04}
+    container_name: cv_cats_dogs_app_${STUDENT_ID:-student01}
     restart: unless-stopped
     
     env_file:
@@ -188,7 +188,7 @@ services:
       # Différent du port exposé à l'hôte (5433)
       # Communication inter-conteneurs = rapide (pas de NAT)
       
-      DB_NAME: ${DB_NAME:-cats_dogs_db}_${STUDENT_ID:-student04}
+      DB_NAME: ${DB_NAME:-cats_dogs_db}_${STUDENT_ID:-student01}
       DB_USER: ${DB_USER:-catsdogs}
       DB_PWD: ${DB_PWD}
       # 🔐 Même configuration que postgres (cohérence)
@@ -211,10 +211,10 @@ services:
       # Optionnel (valeur vide = notifications désactivées)
       # Format : https://discord.com/api/webhooks/{id}/{token}
 
-      STUDENT_ID: ${STUDENT_ID:-student04}
+      STUDENT_ID: ${STUDENT_ID:-student01}
     
     ports:
-      - "${STUDENT_PORT_API:-8000}:8004"
+      - "${STUDENT_PORT_API:-8000}:8000"
       # 🌐 Port de l'API FastAPI (standard FastAPI)
       # Accessible depuis : http://localhost:8000
       # 💡 Un seul port car hôte = conteneur (pas de conflit potentiel)
@@ -251,7 +251,7 @@ services:
       # Alternative : logique de retry dans l'app (moins propre)
     
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       # 🩺 Vérifie que l'API répond sur l'endpoint /health
       # curl -f : fail silently si HTTP status ≠ 2xx/3xx
       # 💡 Nécessite un endpoint /health dans FastAPI (à implémenter)
@@ -292,7 +292,7 @@ services:
     # 📦 Image officielle Prometheus (maintenue par la CNCF)
     # :latest = dernière version stable (alternative : tag spécifique pour prod)
     
-    container_name: cv_prometheus_${STUDENT_ID:-student04}
+    container_name: cv_prometheus_${STUDENT_ID:-student01}
     restart: unless-stopped
     
     command:
@@ -314,7 +314,7 @@ services:
       # Exemple : curl -X POST http://localhost:9090/-/reload
     
     ports:
-      - "${STUDENT_PORT_PROMETHEUS:-9094}:9094"
+      - "${STUDENT_PORT_PROMETHEUS:-9090}:9090"
       # 🌐 Interface web Prometheus
       # Accessible : http://localhost:9090
       # Fonctionnalités :
@@ -370,7 +370,7 @@ services:
     image: grafana/grafana:latest
     # 📦 Image officielle Grafana Labs
     
-    container_name: cv_grafana_${STUDENT_ID:-student04}
+    container_name: cv_grafana_${STUDENT_ID:-student01}
     restart: unless-stopped
     
     environment:
@@ -397,14 +397,14 @@ services:
       # ⚠️ Les deux systèmes sont mutuellement exclusifs
       # Unified = moderne, legacy = déprécié depuis Grafana 9
 
-      GF_SERVER_ROOT_URL: "http://${VPS_HOST:-localhost}:${STUDENT_PORT_GRAFANA:-3004}"
+      GF_SERVER_ROOT_URL: "http://${VPS_HOST:-localhost}:${STUDENT_PORT_GRAFANA:-3000}"
       DB_NAME: ${DB_NAME:-cats_dogs_db}
       DB_USER: ${DB_USER:-catsdogs}
       DB_PWD: ${DB_PWD}
-      STUDENT_ID: ${STUDENT_ID:-student04}
+      STUDENT_ID: ${STUDENT_ID:-student01}
     
     ports:
-      - "${STUDENT_PORT_GRAFANA:-3000}:3004"
+      - "${STUDENT_PORT_GRAFANA:-3000}:3000"
       # 🌐 Interface web Grafana
       # Accessible : http://localhost:3000
       # Login : admin / admin (première fois)
@@ -525,7 +525,7 @@ volumes:
 # ═══════════════════════════════════════════════════════════════════════════════
 networks:
   default:
-    name: cv_mlops_network_${STUDENT_ID:-student04}
+    name: cv_mlops_network_${STUDENT_ID:-student01}
     # 🏷️ Nom custom du réseau (remplace {projet}_default)
     # Avantages :
     #   - Lisibilité (docker network ls)
