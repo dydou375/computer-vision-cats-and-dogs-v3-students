@@ -18,11 +18,11 @@ datasources:
     url: postgres:5432
     uid: postgres
     database: ${DB_NAME}_${STUDENT_ID}
-    user: catsdogs
+    user: ${DB_USER}
     editable: true
     jsonData:
       sslmode: disable
       postgresVersion: 1500
       timescaledb: false
     secureJsonData:
-      password: '?C@TS&D0GS!'
+      password: ${DB_PWD}
