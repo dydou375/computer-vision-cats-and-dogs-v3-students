@@ -91,6 +91,8 @@ track_prediction = None
 track_feedback = None
 update_db_status = None
 track_inference_time = None
+track_prediction_distribution = None
+track_low_confidence_prediction = None
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 📊 IMPORT PROMETHEUS (si activé)
@@ -101,11 +103,15 @@ if ENABLE_PROMETHEUS:
             update_db_status as _update_db_status,   # Gauge database_status
             track_inference_time as _track_inference_time,  # Histogram latence
             track_feedback as _track_feedback,
+            track_prediction_distribution as _track_prediction_distribution,
+            track_low_confidence_prediction as _track_low_confidence_prediction,
         )
         # 🔄 Renommage avec underscore pour éviter shadowing (bonne pratique)
         update_db_status = _update_db_status
         track_inference_time = _track_inference_time
         track_feedback = _track_feedback
+        track_prediction_distribution = _track_prediction_distribution
+        track_low_confidence_prediction = _track_low_confidence_prediction
         print("✅ Prometheus tracking functions loaded")
     except ImportError as e:
         ENABLE_PROMETHEUS = False  # Désactivation silencieuse
@@ -313,6 +319,21 @@ async def predict_api(
                 track_inference_time(inference_time_ms)
             except Exception as e:
                 print(f"⚠️  Prometheus inference time tracking failed: {e}")
+
+        # Track prediction distribution
+        if ENABLE_PROMETHEUS and track_prediction_distribution:
+            try:
+                track_prediction_distribution(result['prediction'].lower())
+            except Exception as e:
+                print(f"⚠️  Prometheus prediction distribution tracking failed: {e}")
+
+        # Track low-confidence predictions
+        if ENABLE_PROMETHEUS and track_low_confidence_prediction:
+            try:
+                if result['confidence'] < 0.6:
+                    track_low_confidence_prediction()
+            except Exception as e:
+                print(f"⚠️  Prometheus low-confidence tracking failed: {e}")
         
         # ─────────────────────────────────────────────────────────────────────
         # 💾 SAUVEGARDE EN BASE DE DONNÉES (V2 - inchangé)

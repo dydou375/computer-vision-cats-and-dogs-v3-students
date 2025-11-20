@@ -46,6 +46,20 @@ feedback_counter = Counter(
     'Nombre de feedbacks utilisateurs',
     ['feedback_type']  # 'positive' ou 'negative'
 )
+
+# Custom metric: Distribution of predictions (cats vs dogs)
+prediction_distribution = Counter(
+    'cv_prediction_distribution',
+    'Distribution of predictions between cats and dogs',
+    ['result']  # Labels: 'cat' or 'dog'
+)
+
+# Custom metric: Low confidence predictions (< 60%)
+low_confidence_predictions = Counter(
+    'cv_low_confidence_predictions_total',
+    'Count of predictions with confidence below 60%'
+)
+
 # 💡 USAGE
 # - .set(1) : marque comme connecté
 # - .set(0) : marque comme déconnecté
@@ -132,6 +146,16 @@ def track_feedback(feedback_type: str):
         feedback_type: 'positive' ou 'negative'
     """
     feedback_counter.labels(feedback_type=feedback_type).inc()
+
+
+def track_prediction_distribution(result: str):
+    """Track the distribution of predictions."""
+    prediction_distribution.labels(result=result).inc()
+
+
+def track_low_confidence_prediction():
+    """Track a low confidence prediction."""
+    low_confidence_predictions.inc()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
