@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:15-alpine
     
-    container_name: cv_postgres_${STUDENT_ID:-student01}
+    container_name: cv_postgres_${STUDENT_ID:-student04}
     
     restart: unless-stopped
     
@@ -13,14 +13,14 @@ services:
     
     environment:
       
-      POSTGRES_DB: ${DB_NAME:-cats_dogs_db}_${STUDENT_ID:-student01}
+      POSTGRES_DB: ${DB_NAME:-cats_dogs_db}_${STUDENT_ID:-student04}
       
       POSTGRES_USER: ${DB_USER:-catsdogs}
       
       POSTGRES_PASSWORD: ${DB_PWD}
     
     ports:
-      - "${STUDENT_PORT_POSTGRES:-5433}:5432"
+      - "${STUDENT_PORT_POSTGRES:-5433}:5437"
     
     volumes:
       
@@ -71,7 +71,7 @@ services:
       STUDENT_ID: ${STUDENT_ID:-student01}
     
     ports:
-      - "${STUDENT_PORT_API:-8000}:8000"
+      - "${STUDENT_PORT_API:-8000}:8004"
 
     volumes:
 
@@ -84,7 +84,7 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
 
       interval: 30s
 
@@ -107,7 +107,7 @@ services:
       - '--web.enable-lifecycle'
 
     ports:
-      - "${STUDENT_PORT_PROMETHEUS:-9090}:9090"
+      - "${STUDENT_PORT_PROMETHEUS:-9090}:9094"
 
     volumes:
       - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -143,7 +143,7 @@ services:
       STUDENT_ID: ${STUDENT_ID:-student01}
     
     ports:
-      - "${STUDENT_PORT_GRAFANA:-3000}:3000"
+      - "${STUDENT_PORT_GRAFANA:-3000}:3004"
 
     volumes:
 
@@ -173,4 +173,4 @@ volumes:
 
 networks:
   default:
-    name: cv_mlops_network_${STUDENT_ID:-student01}
+    name: cv_mlops_network_${STUDENT_ID:-student04}
