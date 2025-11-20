@@ -54,6 +54,13 @@ prediction_distribution = Counter(
     ['result']  # Labels: 'cat' or 'dog'
 )
 
+# Backward-compatible total predictions counter (used by some dashboards)
+predictions_total = Counter(
+    'cv_predictions_total',
+    'Total number of predictions',
+    ['result']  # 'cat' or 'dog'
+)
+
 # Custom metric: Low confidence predictions (< 60%)
 low_confidence_predictions = Counter(
     'cv_low_confidence_predictions_total',
@@ -150,6 +157,12 @@ def track_feedback(feedback_type: str):
 
 def track_prediction_distribution(result: str):
     """Track the distribution of predictions."""
+    # Increment both counters for compatibility with older dashboards
+    try:
+        predictions_total.labels(result=result).inc()
+    except Exception:
+        # Defensive: if for some reason the total counter is unavailable, continue
+        pass
     prediction_distribution.labels(result=result).inc()
 
 
