@@ -4,7 +4,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    url: http://prometheus:9094
     uid: prometheus
     isDefault: true
     editable: true
@@ -15,7 +15,7 @@ datasources:
   - name: PostgreSQL
     type: postgres
     access: proxy
-    url: postgres:5432
+    url: postgres:5437
     uid: postgres
     database: ${DB_NAME}_${STUDENT_ID}
     user: ${DB_USER}
