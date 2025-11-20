@@ -281,6 +281,106 @@ groups:
 
         isPaused: false
 
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🔵 ALERTE 4 : Low-Confidence Ratio (CRITICAL)
+      # ═══════════════════════════════════════════════════════════════════════
+      - uid: cv-low-confidence-ratio
+        title: High Low-Confidence Ratio
+        condition: C
+
+        data:
+          # Query A : ratio low-confidence / total over 5m
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300   # -5 minutes
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(increase(cv_low_confidence_predictions_total[5m])) / sum(increase(cv_predictions_total[5m]))
+              instant: true
+              range: false
+              refId: A
+
+          # Query C : Threshold (ratio > 0.10)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.1
+                    type: gt
+                  reducer:
+                    type: last
+                  type: query
+              expression: A
+              type: threshold
+
+        noDataState: NoData
+        execErrState: Alerting
+        for: 10m
+
+        annotations:
+          description: "Plus de 10% des prédictions ont une confiance < 60% pendant plus de 10 minutes. Vérifier modèle, données et preprocessing."
+          summary: "Taux élevé de prédictions à faible confiance (CRITICAL)"
+
+        labels:
+          severity: critical
+
+        isPaused: false
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # 🟠 ALERTE 5 : Low-Confidence Spike (WARNING)
+      # ═══════════════════════════════════════════════════════════════════════
+      - uid: cv-low-confidence-spike
+        title: Low Confidence Spike
+        condition: C
+
+        data:
+          # Query A : absolute count of low-confidence predictions over 5m
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300   # -5 minutes
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: increase(cv_low_confidence_predictions_total[5m])
+              instant: true
+              range: false
+              refId: A
+
+          # Query C : Threshold (count > 20)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 20
+                    type: gt
+                  reducer:
+                    type: last
+                  type: query
+              expression: A
+              type: threshold
+
+        noDataState: NoData
+        execErrState: Alerting
+        for: 10m
+
+        annotations:
+          description: "Pic de prédictions à faible confiance (>20 sur 5 minutes). Inspecter trafic, preprocessing, et modèle."
+          summary: "Pic de prédictions à faible confiance (WARNING)"
+
+        labels:
+          severity: warning
+
+        isPaused: false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎓 STRUCTURE ALERT RULE GRAFANA
 # ═══════════════════════════════════════════════════════════════════════════
