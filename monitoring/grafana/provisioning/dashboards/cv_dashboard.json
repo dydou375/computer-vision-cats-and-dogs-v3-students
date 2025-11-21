@@ -235,6 +235,10 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 2,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -277,7 +281,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(increase(cv_low_confidence_predictions_total[5m])) / sum(increase(cv_predictions_total[5m]))",
+          "expr": "100 * sum(increase(cv_low_confidence_predictions_total[60m])) / sum(increase(cv_predictions_total[60m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
